@@ -1,91 +1,128 @@
 ---
-title: "Hospitals"
-author: "Andre Williams"
-date: '2022-06-13'
-output: html_document
+title: "Exploratory Data Analysis Project"
+subtitle: "Hospitals"  
+author: 
+  - "Andre, Cameron, and Foday"
+date: 'June 24th, 2022'
+output:
+  xaringan::moon_reader:
+    css: xaringan-themer.css
 ---
 
-# The  hospitals data set.
-Reading the Data set in.
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+knitr::opts_chunk$set(
+  fig.width = 9, fig.height=3.5, fig.retina = 3,
+  out.width = "100%",
+  cache = FALSE,
+  echo = TRUE,
+  message = FALSE, 
+  warning = FALSE,
+  fig.show = TRUE,
+  hiline = TRUE
+)
+```
 
-```{r}
+```{r xaringan-themer, include=FALSE, warning=FALSE}
+library(xaringanthemer)
+style_mono_light(base_color = "#23395b")
+```
+
+
+## Our Motivation
+
+Deciding what hospital is the best fit arises many questions:
+
+
+
+  - What area will provide the best care?
+
+  - Does one type of hospital offer better services than another?
+
+  - Where can I go for the most affordable assistance?
+
+
+  
+.center[![](https://media.giphy.com/media/lMFfNhNxsveCI/giphy.gif)]
+
+---
+
+## What our data consists of
+
+Our data consists of hospital ratings from 2019
+
+  - Our dataset contains 4,772 hospitals and has a rating for 24 different variables 
+
+__Variables Used__
+
+Categorical: 
+  - Facility Type
+  - Facility State
+    
+Continuous:
+  - Facility Rating
+  - Procedure Heart Attack Cost
+  - Procedure Heart Failure Cost
+  - Procedure Pneumonia Cost
+  - Procedure Hip/Knee Cost
+      
+  
+---
+
+## Hospital Data
+
+```{r include=FALSE, echo=FALSE}
 library(tidyverse)
+```
+
+```{r echo=FALSE}
 hospitals <- read.csv("http://www.stat.cmu.edu/cmsac/sure/2022/materials/data/health/eda_projects/hospitals.csv")
-head(hospitals)
+
+h1 <- hospitals %>%
+  select(Facility.State, Facility.Type, Rating.Overall, Procedure.Heart.Attack.Cost)
+
+knitr::kable(head(h1), format = 'html')
 ```
 
+---
 
-# Hypotheses 1: Government hospitals have the worse overall rating compared to other institutions.
+## States with a higher population would have a higher cost of procedures
 
-1) Grouping the data set by the facility type.
-2) Averaging the ratings of each facility type.
-3) Displaying the new table with the facility type and average overall rating.
-
-```{r}
-hospital_ratings <- hospitals %>%
-  group_by(Facility.Type) %>%
-  summarize(Overall.Ratings = mean(Rating.Overall))
-
-hospital_ratings
-
-```
-
-4) Plotting the average hospital ratings by facility.
-
-```{r}
-hospital_ratings %>%
-  ggplot(aes(x = Facility.Type, y = Overall.Ratings, fill = Facility.Type)) +
-  geom_col(width = 0.5) +
-  theme_bw()
-
-
-```
-
-
-Our first hypotheses was deemed correct, as government hospitals had an overall rating of ~1.5 stars.
-
-
-
-
-# Hypotheses #2: States in the Northeast tend to have a high cost of procedures.
-
-1)Check the population for each state
-
-```{r}
+```{r include=FALSE, echo=FALSE}
 census <- read.csv("https://www2.census.gov/programs-surveys/popest/datasets/2010-2019/state/detail/SCPRC-EST2019-18+POP-RES.csv")
-head(census)
 ```
 
-```{r}
+```{r include=FALSE, echo=FALSE}
 population0 <- as_tibble(census) %>%
   select(NAME, POPESTIMATE2019)
 
 colnames(population0)[1] <- 'state'
-colnames(population0)[2] <- 'population'
+colnames(population0)[2] <- 'Population'
 
 population0 <- population0[-c(1, 53),]
 ```
 
-```{r}
+```{r,echo=FALSE}
 library(usmap)
 library(ggplot2)
 
-plot_usmap(data = population0, values = "population", color = "red") + 
-  scale_fill_continuous(low = "yellow", high = "darkred", name = "population", label = scales::comma) + 
+plot_usmap(data = population0, values = "Population", color = "red") + 
+  scale_fill_continuous(low = "yellow", high = "darkred", name = "Population", label = scales::comma) + 
   theme(legend.position = "right")
 
 ```
 
-2) Group the hospitals by their states.
+---
 
-```{r}
+## States with a higher population would have a higher cost of procedures
+
+
+```{r include=FALSE, echo=FALSE}
 hospital_cost <- hospitals %>%
   group_by(Facility.State)
 ```
 
-3) Calculate the average cost of each procedures per state.
-
-```{r}
+```{r include=FALSE, echo=FALSE}
 hospital_cost <- hospital_cost %>%
   summarise(Avg_HCost = mean(Procedure.Heart.Attack.Cost),
             Avg_HFCost = mean(Procedure.Heart.Failure.Cost),
@@ -95,63 +132,154 @@ hospital_cost <- hospital_cost %>%
 colnames(hospital_cost)[1] <- 'state'
 ```
 
-4) Combine the average of each procedure to obtain one average cost of all.
-
-```{r}
+```{r include=FALSE, echo=FALSE}
 hospital_avg_cost <- hospital_cost %>%
   group_by(state) %>%
-  summarize(Avg_cost = mean(Avg_HCost + Avg_HFCost + Avg_PCost + Avg_HKCost)) %>%
+  summarize(Avg_cost = Avg_HCost + Avg_HFCost + Avg_PCost + Avg_HKCost) %>%
   arrange(desc(Avg_cost))
-  
-hospital_avg_cost
 ```
 
-5) Plot the map with the average cost of procedures for each state.
-
-```{r}
+```{r, echo=FALSE}
 library(usmap)
 library(ggplot2)
 
 plot_usmap(data = hospital_avg_cost, values = "Avg_cost", color = "red") + 
-  scale_fill_continuous(low = "yellow", high = "darkred", name = "Avg Cost", label = scales::comma) + 
+  scale_fill_continuous(low = "yellow", high = "darkred", name = "Average Cost", label = scales::comma) + 
   theme(legend.position = "right")
 
 
 ```
 
 
+---
+
+## Church hospitals will have the overall highest cost of procedures(w/o non-zero ratings)
 
 
+```{r include=FALSE, echo=FALSE}
+ratings_nozero <- hospitals %>%
+  filter(Procedure.Heart.Attack.Cost > 0, Procedure.Heart.Failure.Cost > 0, Procedure.Pneumonia.Cost > 0, Procedure.Hip.Knee.Cost > 0) %>%
+  mutate(all_cost = (Procedure.Heart.Attack.Cost + Procedure.Heart.Failure.Cost + Procedure.Pneumonia.Cost + Procedure.Hip.Knee.Cost) / 4)
+```
 
-With the exception of Florida, our hypotheses was correct, as New Jersey and the rest of northeast America have a higher cost of living. 
-
-
-
-
-# Hypotheses 3: (Still working on) Something along the lines of comparing the average cost of preocedures to the quality in each state. This will be the cluster example. Cameron has the more complete code in his Rstudio. I just have some of the calculations below.
-
-
-
-
-
-```{r}
-library(plyr)
-hospitals$Procedure.Heart.Attack.Quality <- revalue(hospitals$Procedure.Heart.Attack.Quality, c("Better" = 1, "Unknown" = -1, "Lower" = 2, "Worse" = 4, "Average" = 3))
+```{r include=FALSE, echo=FALSE}
 hospitals <- hospitals %>%
-  mutate_at(vars(Procedure.Heart.Attack.Quality), as.numeric)
-
+  mutate(all_cost0 = (Procedure.Heart.Attack.Cost + Procedure.Heart.Failure.Cost + Procedure.Pneumonia.Cost + Procedure.Hip.Knee.Cost) / 4)
 ```
 
-```{r}
+```{r echo=FALSE}
 hospitals %>%
-  select(Facility.State, Procedure.Heart.Attack.Quality)
+  ggplot(aes(x = Facility.Type,
+             y = all_cost0)) +
+  geom_violin() +
+  geom_boxplot(width = .2) +
+  theme_bw()
 ```
 
-```{r}
-hospitals_costperquality <- hospitals %>%
-  mutate(hospital_cpq = Procedure.Heart.Attack.Cost / Procedure.Heart.Attack.Quality) %>%
-  select(Facility.State, hospital_cpq)
 
-hospitals_costperquality
 
+---
+
+## Church hospitals will have the overall highest cost of procedures
+
+```{r echo=FALSE}
+ratings_nozero %>%
+  ggplot(aes(x = Facility.Type,
+             y = all_cost)) +
+  geom_violin(aes(fill = factor(Facility.Type))) +
+  geom_boxplot(width = .2) +
+  theme_bw()
 ```
+
+
+
+---
+
+## Church hospitals will have the highest overall rating
+
+```{r include=FALSE, echo=FALSE}
+hospital_ratings <- hospitals %>%
+  group_by(Facility.Type) %>%
+  summarize(Overall.Ratings = mean(Rating.Overall)) %>%
+  arrange(desc(Overall.Ratings))
+```
+
+```{r echo=FALSE}
+hospital_ratings %>%
+  ggplot(aes(x = Facility.Type, y = Overall.Ratings, fill = Facility.Type)) +
+  geom_col(width = 0.5) +
+  theme_bw()
+```
+
+---
+
+## Clustering Hospitals based on Heart Attack and Failure Cost
+
+```{r include=FALSE, echo=FALSE}
+library(cluster)
+library(dslabs)
+
+clean_ratings <- hospitals %>%
+  filter(Procedure.Heart.Attack.Cost > 0, Procedure.Heart.Failure.Cost > 0)
+```
+
+```{r include=FALSE, echo=FALSE}
+#Standardize the variables
+clean_ratings <- clean_ratings %>%
+  mutate(std_log_cost = as.numeric(scale(Procedure.Heart.Attack.Cost, center = TRUE, scale = TRUE)),
+         std_rating_over = as.numeric(scale(Procedure.Heart.Failure.Cost, center = TRUE, scale = TRUE)))
+std_kmeans <- 
+  kmeans(dplyr::select(clean_ratings, std_log_cost, std_rating_over),
+         algorithm = "Lloyd", centers = 2, nstart = 1)
+std_kmeans2 <- 
+  kmeans(dplyr::select(clean_ratings, std_log_cost, std_rating_over),
+         algorithm = "Lloyd", centers = 3, nstart = 1)
+```
+
+```{r echo=FALSE}
+#Clustering Algorithm for Heart Attack Cost and Heart Failure Cost
+clean_ratings %>%
+  mutate(rating_clusters = 
+           as.factor(std_kmeans$cluster)) %>%
+  ggplot(aes(x = Procedure.Heart.Attack.Cost, y = Procedure.Heart.Failure.Cost,
+             color = rating_clusters)) +
+  geom_point() + 
+  ggthemes::scale_color_colorblind() +
+  theme_bw() +
+  theme(legend.position = "bottom") +
+  coord_fixed()
+```
+
+---
+
+## Clustering Hospitals based on Heart Attack and Failure Cost(with 3 centroids)
+
+```{r echo=FALSE}
+clean_ratings %>%
+  mutate(rating_clusters = 
+           as.factor(std_kmeans2$cluster)) %>%
+  ggplot(aes(x = Procedure.Heart.Attack.Cost, y = Procedure.Heart.Failure.Cost,
+             color = rating_clusters)) +
+  geom_point() + 
+  ggthemes::scale_color_colorblind() +
+  theme_bw() +
+  theme(legend.position = "bottom") +
+  coord_fixed()
+```
+---
+
+### Conclusion
+
+- The Northeast region of America has the highest overall cost of procedures
+
+- Proprietary hospitals on average are the most expensive
+
+- Church hospitals have a higher average rating based on the small amount of facilities they have operating
+
+### Limitations
+
+- Most of the data was categorical
+- Data we could have used: Income, Health Insurance, etc.
+
+
+## __Questions?__
