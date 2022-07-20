@@ -1,0 +1,219 @@
+---
+title: "Substance Abuse"
+author: "Andre Williams"
+date: '2022-07-20'
+output: html_document
+---
+
+# Reading in data
+
+```{r}
+library(tidyverse)
+county_rankings <- read.csv("http://www.stat.cmu.edu/cmsac/sure/2022/materials/data/health/optum_projects/county_rankings.csv")
+overdoses <- read.csv("~/SURE-2022/Drug-Alcohol Overdose.csv")
+d3 <- read.csv("~/SURE-2022/VSRR_Provisional_Drug_Overdose_Death_Counts.csv")
+```
+
+# Hypotheses 1
+
+__Understanding where most drug overdose deaths occur__
+
+```{r}
+d3 <- read.csv("~/SURE-2022/VSRR_Provisional_Drug_Overdose_Death_Counts.csv")
+d3$Data.Value <- as.integer(gsub(",", "", d3$Data.Value))
+```
+
+__Cleaning the data for the US map graph__
+
+```{r}
+d3 <- d3 %>%
+  filter(Year %in% "2019",
+         Indicator %in% "Number of Drug Overdose Deaths") %>%
+  select(State, Indicator, Data.Value) %>%
+  group_by(State) %>%
+  summarise(avg_death = sum(Data.Value))
+```
+
+__Plotting the average drug overdose deaths per state__
+
+```{r}
+library(usmap)
+library(ggplot2)
+
+
+colnames(d3)[1] <- 'state'
+
+plot_usmap(data = d3, values = "avg_death", color = "red") + 
+  scale_fill_continuous(low = "yellow", high = "darkred", name = "Average Deaths", label = scales::comma) + 
+  theme(legend.position = "right")
+
+```
+
+__Looking at the most used drug in California__
+
+```{r}
+d3 <- read.csv("~/SURE-2022/VSRR_Provisional_Drug_Overdose_Death_Counts.csv")
+d3$Data.Value <- as.integer(gsub(",", "", d3$Data.Value))
+```
+
+```{r}
+d3 <- d3 %>%
+  arrange(desc(Data.Value)) %>%
+  filter(Year %in% "2019",
+         !Indicator %in% c("Percent with drugs specified", "Number of Deaths",
+                        "Number of Drug Overdose Deaths"),
+         State %in% "CA") %>%
+  select(State, Indicator, Data.Value)
+
+head(d3)
+```
+
+__Looking at the most used drug in Florida__
+
+```{r}
+d3 <- read.csv("~/SURE-2022/VSRR_Provisional_Drug_Overdose_Death_Counts.csv")
+d3$Data.Value <- as.integer(gsub(",", "", d3$Data.Value))
+```
+
+```{r}
+d3 <- d3 %>%
+  arrange(desc(Data.Value)) %>%
+  filter(Year %in% "2019",
+         !Indicator %in% c("Percent with drugs specified", "Number of Deaths",
+                        "Number of Drug Overdose Deaths"),
+         State %in% "FL") %>%
+  select(State, Indicator, Data.Value)
+
+head(d3)
+```
+
+__Looking at the most used drug in Texas__
+
+```{r}
+d3 <- read.csv("~/SURE-2022/VSRR_Provisional_Drug_Overdose_Death_Counts.csv")
+d3$Data.Value <- as.integer(gsub(",", "", d3$Data.Value))
+```
+
+```{r}
+d3 <- d3 %>%
+  arrange(desc(Data.Value)) %>%
+  filter(Year %in% "2019",
+         !Indicator %in% c("Percent with drugs specified", "Number of Deaths",
+                        "Number of Drug Overdose Deaths"),
+         State %in% "TX") %>%
+  select(State, Indicator, Data.Value)
+
+head(d3)
+```
+
+__Looking at the most used drug in Ohio__
+
+```{r}
+d3 <- read.csv("~/SURE-2022/VSRR_Provisional_Drug_Overdose_Death_Counts.csv")
+d3$Data.Value <- as.integer(gsub(",", "", d3$Data.Value))
+```
+
+```{r}
+d3 <- d3 %>%
+  arrange(desc(Data.Value)) %>%
+  filter(Year %in% "2019",
+         !Indicator %in% c("Percent with drugs specified", "Number of Deaths",
+                        "Number of Drug Overdose Deaths"),
+         State %in% "OH") %>%
+  select(State, Indicator, Data.Value)
+
+head(d3)
+```
+
+__Median Household Income__
+
+```{r}
+income <- read.csv("~/SURE-2022/csvData.csv")
+```
+
+```{r}
+library(usmap)
+library(ggplot2)
+
+
+colnames(income)[1] <- 'state'
+
+plot_usmap(data = income, values = "HouseholdIncome", color = "red") + 
+  scale_fill_continuous(low = "yellow", high = "darkred", name = "Median Income", label = scales::comma) + 
+  theme(legend.position = "right")
+
+```
+
+
+__Highschool Completion__
+
+```{r}
+county_rankings <- read.csv("http://www.stat.cmu.edu/cmsac/sure/2022/materials/data/health/optum_projects/county_rankings.csv")
+```
+
+```{r}
+county_rankings <- county_rankings %>%
+  filter(County.FIPS.Code %in% 0,
+         !State.Abbreviation %in% c("US", "DC")) %>%
+  select(Name, High.school.completion.raw.value)
+  
+county_rankings
+
+```
+
+```{r}
+library(usmap)
+library(ggplot2)
+
+
+colnames(county_rankings)[1] <- 'state'
+
+plot_usmap(data = county_rankings, values = "High.school.completion.raw.value", color = "red") + 
+  scale_fill_continuous(low = "yellow", high = "darkred", name = "HS Completion %", label = scales::comma) + 
+  theme(legend.position = "right")
+
+```
+
+
+__HS completion by county in CA__
+
+```{r}
+county_rankings <- read.csv("http://www.stat.cmu.edu/cmsac/sure/2022/materials/data/health/optum_projects/county_rankings.csv")
+```
+
+```{r}
+county_rankings <- county_rankings %>%
+  filter(!County.FIPS.Code %in% 0) %>%
+  select(County.FIPS.Code, Name, High.school.completion.raw.value)
+  
+county_rankings
+
+```
+
+```{r}
+library(usmap)
+library(ggplot2)
+
+
+colnames(county_rankings)[1] <- 'fips'
+
+plot_usmap(regions = "counties",
+           data = county_rankings,
+           values = "High.school.completion.raw.value",
+           color = "red") +
+  scale_fill_continuous(low = "yellow", high = "darkred", name = "HS Completion %", label = scales::comma) +
+  theme(legend.position = "right")
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
