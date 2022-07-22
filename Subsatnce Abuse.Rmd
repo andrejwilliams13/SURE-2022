@@ -206,55 +206,6 @@ d3 <- d3 %>%
 head(d3, 3)
 ```
 
-__Median Household Income By State__
-
-```{r echo=FALSE}
-library(usmap)
-library(ggplot2)
-
-plot_usmap(data = income, values = "HouseholdIncome", color = "red") + 
-  scale_fill_continuous(low = "yellow", high = "darkred", name = "Median Income", label = scales::comma) + 
-  theme(legend.position = "right")
-
-```
-
-
-__Highschool Completion__
-
-```{r echo=FALSE}
-library(usmap)
-library(ggplot2)
-
-plot_usmap(data = combined, values = "High.school.completion.raw.value",
-           color = "red") + 
-  scale_fill_continuous(low = "yellow", high = "darkred", name = "HS Completion %", label = scales::comma) + 
-  theme(legend.position = "right")
-```
-
-__Unemployment Rate by State__
-
-```{r echo=FALSE}
-library(usmap)
-library(ggplot2)
-
-plot_usmap(data = combined, values = "Unemployment.raw.value",
-           color = "red") + 
-  scale_fill_continuous(low = "yellow", high = "darkred", name = "Unemployment %", label = scales::comma) + 
-  theme(legend.position = "right")
-```
-
-__College Experience__
-
-```{r echo=FALSE}
-library(usmap)
-library(ggplot2)
-
-plot_usmap(data = combined, values = "Some.college.raw.value",
-           color = "red") + 
-  scale_fill_continuous(low = "yellow", high = "darkred", name = "College Experience %", label = scales::comma) + 
-  theme(legend.position = "right")
-```
-
 _Clustering of Total deaths by the socioeconomic factors__
 
 ```{r echo=FALSE}
