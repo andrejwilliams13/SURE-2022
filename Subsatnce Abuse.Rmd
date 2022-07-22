@@ -2,10 +2,20 @@
 title: "Substance Abuse"
 author: "Andre Williams"
 date: '2022-07-20'
-output: html_document
+output:
+  html_document: default
 ---
 
-# Hypotheses 1: Understanding where most drug overdose deaths occur and some characteristics of those areas
+# Where do most drug overdose deaths occur and what are some characteristics of those areas(income, education, unemployment)?
+
+
+__Datasets Used__
+
+County Health Rankings
+
+12 Month-ending Provisional Number and Percent Change of Drug Overdose Deaths
+
+Median Household Income
 
 
 ```{r include=FALSE, echo=FALSE}
@@ -13,6 +23,7 @@ library(tidyverse)
 
 d3 <- read.csv("~/SURE-2022/Drug-Alcohol Overdose Deaths.csv")
 county_rankings <- read.csv("~/SURE-2022/county_rankings.csv")
+income <- read.csv("~/SURE-2022/MedianHouseholdIncome.csv")
 ```
 
 ```{r include=FALSE, echo=FALSE}
@@ -24,32 +35,92 @@ d3 <- d3 %>%
   arrange(State) %>%
   filter(Year %in% "2019",
          Indicator %in% "Number of Drug Overdose Deaths",
-         !State %in% c("DC", "YC", "US")) %>%
+         !State %in% c("DC", "YC")) %>%
   select(State, Indicator, Data.Value) %>%
   group_by(State) %>%
-  summarise(total_deaths = sum(Data.Value))
+  summarise(total_deaths = sum(Data.Value)) %>%
+  mutate(Total.deaths.raw.value = (total_deaths / 822382) * 100) %>%
+  filter(!State %in% "US")
 
 colnames(d3)[1] <- 'state'
 ```
 
 ```{r include=FALSE, echo=FALSE}
-county_rankings <- read.csv("~/SURE-2022/county_rankings.csv")
-
 county_rankings <- county_rankings %>%
   arrange(State.Abbreviation) %>%
   filter(County.FIPS.Code %in% 0,
          !State.Abbreviation %in% c("US", "DC")) %>%
-  select(State.Abbreviation, Unemployment.raw.value, Some.college.raw.value, High.school.completion.raw.value)
+  select(State.Abbreviation, Unemployment.raw.value, Some.college.raw.value, High.school.completion.raw.value) %>%
+  mutate(Unemployment.raw.value = (Unemployment.raw.value * 100),
+         High.school.completion.raw.value = (High.school.completion.raw.value * 100),
+         Some.college.raw.value = (Some.college.raw.value * 100))
 
 colnames(county_rankings)[1] <- 'state'
 ```
 
-```{r}
+```{r echo=FALSE}
+colnames(income)[1] <- 'state'
+income <- income %>%
+  mutate(state = fct_recode(state,
+                            "MD" = "Maryland",
+                            "NJ" = "New Jersey",
+                            "HI" = "Hawaii",
+                            "MA" = "Massachusetts",
+                            "CT" = "Connecticut",
+                            "AK" = "Alaska",
+                            "NH" = "New Hampshire",
+                            "CA" = "California",
+                            "VA" = "Virginia",
+                            "WA" = "Washington",
+                            "CO" = "Colorado",
+                            "UT" = "Utah",
+                            "MN" = "Minnesota",
+                            "NY" = "New York",
+                            "DE" = "Delaware",
+                            "RI" = "Rhode Island",
+                            "IL" = "Illinois",
+                            "ND" = "North Dakota",
+                            "WY" = "Wyoming",
+                            "OR" = "Oregon",
+                            "VT" = "Vermont",
+                            "TX" = "Texas",
+                            "WI" = "Wisconsin",
+                            "PA" = "Pennsylvania",
+                            "NE" = "Nebraska",
+                            "IA" = "Iowa",
+                            "NV" = "Nevada",
+                            "KS" = "Kansas",
+                            "AZ" = "Arizona",
+                            "GA" = "Georgia",
+                            "SD" = "South Dakota",
+                            "ME" = "Maine",
+                            "MI" = "Michigan",
+                            "OH" = "Ohio",
+                            "IN" = "Indiana",
+                            "ID" = "Idaho",
+                            "FL" = "Florida",
+                            "MO" = "Missouri",
+                            "MT" = "Montana",
+                            "NC" = "North Carolina",
+                            "TN" = "Tennessee",
+                            "SC" = "South Carolina",
+                            "OK" = "Oklahoma",
+                            "KY" = "Kentucky",
+                            "AL" = "Alabama",
+                            "NM" = "New Mexico",
+                            "LA" = "Louisiana",
+                            "AR" = "Arkansas",
+                            "WV" = "West Virginia",
+                            "MS" = "Mississippi"))
+```
+
+```{r echo=FALSE, include=FALSE}
 # Combining the data
 
 library(dplyr)
 
-combined <- dplyr::left_join(x = d3, y = county_rankings, by = 'state')
+first <- dplyr::left_join(x = d3, y = county_rankings, by = 'state')
+combined <- dplyr::left_join(x = first, y = income, by = 'state')
 ```
 
 __Plotting the total drug overdose deaths per state in 2019__
@@ -63,6 +134,9 @@ plot_usmap(data = combined, values = "total_deaths", color = "red") +
   theme(legend.position = "right")
 
 ```
+
+
+
 
 __Looking at the most used drug in California__
 
@@ -135,13 +209,8 @@ head(d3, 3)
 __Median Household Income By State__
 
 ```{r echo=FALSE}
-income <- read.csv("~/SURE-2022/MedianHouseholdIncome.csv")
-
 library(usmap)
 library(ggplot2)
-
-
-colnames(income)[1] <- 'state'
 
 plot_usmap(data = income, values = "HouseholdIncome", color = "red") + 
   scale_fill_continuous(low = "yellow", high = "darkred", name = "Median Income", label = scales::comma) + 
@@ -329,3 +398,6 @@ plot(death_hs_clust, what = 'classification')
 ```{r echo=FALSE}
 plot(death_unemploy_clust, what = 'classification')
 ```
+
+
+
