@@ -21,29 +21,40 @@ Median Household Income
 ```{r include=FALSE, echo=FALSE}
 library(tidyverse)
 
-d1 <- read.csv("~/SURE-2022/ODbyRace.csv")
 d3 <- read.csv("~/SURE-2022/Drug-Alcohol Overdose Deaths.csv")
 county_rankings <- read.csv("~/SURE-2022/county_rankings.csv")
 income <- read.csv("~/SURE-2022/MedianHouseholdIncome.csv")
 ```
 
 ```{r include=FALSE, echo=FALSE}
-# Cleaning the data
-
 d3$Data.Value <- as.integer(gsub(",", "", d3$Data.Value))
 
-d3 <- d3 %>%
+OD <- d3 %>%
   arrange(State) %>%
   filter(Year %in% "2019",
          Indicator %in% "Number of Drug Overdose Deaths",
-         !State %in% c("DC", "YC")) %>%
+         !State %in% c("DC", "YC", "US")) %>%
   select(State, Indicator, Data.Value) %>%
   group_by(State) %>%
-  summarise(total_deaths = sum(Data.Value)) %>%
-  mutate(Total.deaths.raw.value = (total_deaths / 822382) * 100) %>%
-  filter(!State %in% "US")
+  summarise(OD_deaths = sum(Data.Value))
 
-colnames(d3)[1] <- 'state'
+colnames(OD)[1] <- 'state'
+```
+
+```{r include=FALSE, echo=FALSE}
+d3 <- read.csv("~/SURE-2022/Drug-Alcohol Overdose Deaths.csv")
+d3$Data.Value <- as.integer(gsub(",", "", d3$Data.Value))
+
+deaths <- d3 %>%
+  arrange(State) %>%
+  filter(Year %in% "2019",
+         Indicator %in% "Number of Deaths",
+         !State %in% c("DC", "YC", "US")) %>%
+  select(State, Indicator, Data.Value) %>%
+  group_by(State) %>%
+  summarise(Total_deaths = sum(Data.Value))
+
+colnames(deaths)[1] <- 'state'
 ```
 
 ```{r include=FALSE, echo=FALSE}
@@ -115,30 +126,31 @@ income <- income %>%
                             "MS" = "Mississippi"))
 ```
 
-```{r echo=FALSE, include=FALSE}
-# Combining the data
+```{r echo=FALSE}
+library(usmap)
+library(ggplot2)
 
+plot_usmap(data = income, values = "HouseholdIncome", color = "red") + 
+  scale_fill_continuous(name = "Median Household Income", label = scales::comma) + 
+  theme(legend.position = "right")
+
+```
+
+```{r echo=FALSE, include=FALSE}
 library(dplyr)
 
-first <- dplyr::left_join(x = d3, y = county_rankings, by = 'state')
-combined <- dplyr::left_join(x = first, y = income, by = 'state')
+first <- dplyr::left_join(x = OD, y = deaths, by = 'state')
+second <- dplyr::left_join(x = first, y = county_rankings, by = 'state')
+combined <- dplyr::left_join(x = second, y = income, by = 'state')
 ```
 
 __Plotting the total drug overdose deaths per state in 2019__
 
 ```{r echo=FALSE}
-library(usmap)
-library(ggplot2)
-
-plot_usmap(data = combined, values = "total_deaths", color = "red") + 
-  scale_fill_continuous(low = "yellow", high = "darkred", name = "Total Deaths", label = scales::comma) + 
+plot_usmap(data = combined, values = "OD_deaths", color = "red") + 
+  scale_fill_continuous(low = "yellow", high = "darkred", name = "Total Drug OD Deaths", label = scales::comma) + 
   theme(legend.position = "right")
-
 ```
-
-
-
-
 __Looking at the most used drug in California__
 
 ```{r echo=FALSE}
@@ -154,9 +166,17 @@ d3 <- d3 %>%
   select(State, Indicator, Data.Value) %>%
   group_by(State, Indicator) %>%
   summarise(Data.Value = sum(Data.Value)) %>%
-  arrange(desc(Data.Value))
+  arrange(desc(Data.Value)) %>%
+  ggplot(aes(x="", y=Data.Value, fill=Indicator)) +
+  geom_bar(stat="identity", width=1, color="white") +
+  coord_polar("y", start=0) +
+  theme_void() + 
+  theme(legend.position="none") +
+  
+  geom_text(aes(y = Data.Value, label = Indicator), color = "white", size=6) +
+  scale_fill_brewer(palette="Set1")
 
-head(d3, 3)
+d3
 ```
 
 __Looking at the most used drug in Florida__
@@ -176,7 +196,7 @@ d3 <- d3 %>%
   summarise(Data.Value = sum(Data.Value)) %>%
   arrange(desc(Data.Value))
 
-head(d3, 3)
+knitr::kable(head(d3, 3), format = 'html')
 ```
 
 __Looking at the most used drug in Texas__
@@ -196,7 +216,7 @@ d3 <- d3 %>%
   summarise(Data.Value = sum(Data.Value)) %>%
   arrange(desc(Data.Value))
 
-head(d3, 3)
+knitr::kable(head(d3, 3), format = 'html')
 ```
 
 __Looking at the most used drug in Ohio__
@@ -216,41 +236,21 @@ d3 <- d3 %>%
   summarise(Data.Value = sum(Data.Value)) %>%
   arrange(desc(Data.Value))
 
-head(d3, 3)
+knitr::kable(head(d3, 3), format = 'html')
 ```
-
 _Clustering of Total deaths by the socioeconomic factors__
 
-```{r echo=FALSE}
+```{r echo=FALSE, include=FALSE}
 init_kmeans <- 
   kmeans(dplyr::select(combined,
-                       total_deaths, Unemployment.raw.value),
+                       OD_deaths, Unemployment.raw.value),
          algorithm = "Lloyd", centers = 3,
          nstart = 1)
 
 combined %>%
   mutate(state_clusters = 
            as.factor(init_kmeans$cluster)) %>%
-  ggplot(aes(x = total_deaths, y = Unemployment.raw.value,
-             color = state_clusters)) +
-  labs(title = "Unemployment Rate by Deaths") +
-  geom_point() + 
-  ggthemes::scale_color_colorblind() +
-  theme_bw() +
-  theme(legend.position = "bottom")
-```
-
-```{r echo=FALSE}
-init_kmeans <- 
-  kmeans(dplyr::select(combined,
-                       total_deaths, Some.college.raw.value),
-         algorithm = "Lloyd", centers = 3,
-         nstart = 1)
-
-combined %>%
-  mutate(state_clusters = 
-           as.factor(init_kmeans$cluster)) %>%
-  ggplot(aes(x = total_deaths, y = Some.college.raw.value,
+  ggplot(aes(x = OD_deaths, y = Unemployment.raw.value,
              color = state_clusters)) +
   geom_point() + 
   ggthemes::scale_color_colorblind() +
@@ -258,17 +258,35 @@ combined %>%
   theme(legend.position = "bottom")
 ```
 
-```{r echo=FALSE}
+```{r echo=FALSE, include=FALSE}
 init_kmeans <- 
   kmeans(dplyr::select(combined,
-                       total_deaths, High.school.completion.raw.value),
+                       OD_deaths, Some.college.raw.value),
          algorithm = "Lloyd", centers = 3,
          nstart = 1)
 
 combined %>%
   mutate(state_clusters = 
            as.factor(init_kmeans$cluster)) %>%
-  ggplot(aes(x = total_deaths, y = High.school.completion.raw.value,
+  ggplot(aes(x = OD_deaths, y = Some.college.raw.value,
+             color = state_clusters)) +
+  geom_point() + 
+  ggthemes::scale_color_colorblind() +
+  theme_bw() +
+  theme(legend.position = "bottom")
+```
+
+```{r echo=FALSE, include=FALSE}
+init_kmeans <- 
+  kmeans(dplyr::select(combined,
+                       OD_deaths, High.school.completion.raw.value),
+         algorithm = "Lloyd", centers = 3,
+         nstart = 1)
+
+combined %>%
+  mutate(state_clusters = 
+           as.factor(init_kmeans$cluster)) %>%
+  ggplot(aes(x = OD_deaths, y = High.school.completion.raw.value,
              color = state_clusters)) +
   geom_point() + 
   ggthemes::scale_color_colorblind() +
@@ -279,8 +297,9 @@ combined %>%
 __Clustering with the standardized variables__
 
 ```{r echo=FALSE}
+library(ggrepel)
 combined <- combined %>%
-  mutate(std_death = as.numeric(scale(total_deaths, center = TRUE, scale = TRUE)),
+  mutate(std_death = as.numeric(scale(OD_deaths, center = TRUE, scale = TRUE)),
          std_unemploy = as.numeric(scale(Unemployment.raw.value, center = TRUE, scale = TRUE)),
          std_hs = as.numeric(scale(High.school.completion.raw.value, center = TRUE, scale = TRUE)),
          std_college = as.numeric(scale(Some.college.raw.value, center = TRUE, scale = TRUE)))
@@ -295,10 +314,11 @@ combined %>%
   mutate(state_clusters = 
            as.factor(std_kmeans$cluster)) %>%
   ggplot(aes(x = std_death, y = std_unemploy,
-             color = state_clusters)) +
+             color = state_clusters, label = state)) +
   labs(x = "Total Deaths", y = "Unemployment Rate",
-       title = "Cluster of Deaths and Unemployment Rate") +
-  geom_point() + 
+       title = "Cluster of Deaths and Unemployment Rate by State") +
+  geom_point() +
+  geom_text_repel(size = 2) +
   ggthemes::scale_color_colorblind() +
   theme_bw() +
   theme(legend.position = "bottom",
@@ -310,16 +330,17 @@ combined %>%
 ```{r echo=FALSE}
 std_kmeans <- 
   kmeans(dplyr::select(combined, std_death, std_hs),
-         algorithm = "Lloyd", centers = 4, nstart = 1)
+         algorithm = "Lloyd", centers = 3, nstart = 1)
 
 combined %>%
   mutate(state_clusters = 
            as.factor(std_kmeans$cluster)) %>%
   ggplot(aes(x = std_death, y = std_hs,
-             color = state_clusters)) +
+             color = state_clusters, label = state)) +
   labs(x = "Total Deaths", y = "HS Completion",
-       title = "Cluster of Deaths and HS Completion Rate") +
+       title = "Cluster of Deaths and HS Completion Rate by State") +
   geom_point() + 
+  geom_text_repel(size = 2) +
   ggthemes::scale_color_colorblind() +
   theme_bw() +
   theme(legend.position = "bottom",
@@ -337,8 +358,11 @@ combined %>%
   mutate(state_clusters = 
            as.factor(std_kmeans$cluster)) %>%
   ggplot(aes(x = std_death, y = std_college,
-             color = state_clusters)) +
-  geom_point() + 
+             color = state_clusters, label = state)) +
+  labs(x = "Total Deaths", y = "College Experience",
+       title = "Cluster of Deaths and College Experience Rate by State") +
+  geom_point() +
+  geom_text_repel(size = 2) +
   ggthemes::scale_color_colorblind() +
   theme_bw() +
   theme(legend.position = "bottom") +
@@ -351,11 +375,11 @@ __Model Based Clustering__
 ```{r echo=FALSE, include=FALSE}
 library(mclust)
 
-death_college_clust <- Mclust(dplyr::select(combined, total_deaths, Some.college.raw.value))
+death_college_clust <- Mclust(dplyr::select(combined, OD_deaths, Unemployment.raw.value))
 
-death_unemploy_clust <- Mclust(dplyr::select(combined, total_deaths, Unemployment.raw.value))
+death_unemploy_clust <- Mclust(dplyr::select(combined, OD_deaths, High.school.completion.raw.value))
 
-death_hs_clust <- Mclust(dplyr::select(combined, total_deaths, High.school.completion.raw.value))
+death_hs_clust <- Mclust(dplyr::select(combined, OD_deaths, Some.college.raw.value))
 ```
 
 ```{r echo=FALSE}
@@ -369,136 +393,3 @@ plot(death_hs_clust, what = 'classification')
 ```{r echo=FALSE}
 plot(death_unemploy_clust, what = 'classification')
 ```
-
-
-```{r}
-opioid_by_race <- read.csv("~/SURE-2022/ODbyRace.csv")
-opioid_by_age <- read.csv("~/SURE-2022/ODbyAge.csv")
-opioid_by_sex <- read.csv("~/SURE-2022/ODbyGender.csv")
-opioid_by_type <- read.csv("~/SURE-2022/ODbyType.csv")
-```
-
-```{r echo=FALSE, include=FALSE}
-colnames(opioid_by_age)[1] <- 'State'
-colnames(opioid_by_age)[2] <- '0-24'
-colnames(opioid_by_age)[3] <- '25-34'
-colnames(opioid_by_age)[4] <- '35-44'
-colnames(opioid_by_age)[5] <- '45-54'
-colnames(opioid_by_age)[6] <- '55+'
-colnames(opioid_by_age)[7] <- 'Age.Total'
-
-opioid_by_age$`0-24` <- as.integer(gsub(",", "", opioid_by_age$`0-24`))
-opioid_by_age$`25-34` <- as.integer(gsub(",", "", opioid_by_age$`25-34`))
-opioid_by_age$`35-44` <- as.integer(gsub(",", "", opioid_by_age$`35-44`))
-opioid_by_age$`45-54` <- as.integer(gsub(",", "", opioid_by_age$`45-54`))
-opioid_by_age$`55+` <- as.integer(gsub(",", "", opioid_by_age$`55+`))
-opioid_by_age$Age.Total <- as.integer(gsub(",", "", opioid_by_age$Age.Total))
-
-opioid_by_age$`0-24`<-as.numeric(opioid_by_age$`0-24`)
-opioid_by_age$`25-34`<-as.numeric(opioid_by_age$`25-34`)
-opioid_by_age$`35-44`<-as.numeric(opioid_by_age$`35-44`)
-opioid_by_age$`45-54`<-as.numeric(opioid_by_age$`45-54`)
-opioid_by_age$`55+`<-as.numeric(opioid_by_age$`55+`)
-opioid_by_age$Age.Total<-as.numeric(opioid_by_age$Age.Total)
-```
-
-```{r echo=FALSE, include=FALSE}
-colnames(opioid_by_type)[1] <- 'State'
-
-opioid_by_type$Natural.and.Semisynthetic.Opioids..e.g..oxycodone..hydrocodone. <- as.integer(gsub(",", "", opioid_by_type$Natural.and.Semisynthetic.Opioids..e.g..oxycodone..hydrocodone.))
-opioid_by_type$Synthetic.Opioids..other.than.Methadone..e.g..fentanyl..tramadol. <- as.integer(gsub(",", "", opioid_by_type$Synthetic.Opioids..other.than.Methadone..e.g..fentanyl..tramadol.))
-opioid_by_type$Methadone <- as.integer(gsub(",", "", opioid_by_type$Methadone))
-opioid_by_type$Heroin <- as.integer(gsub(",", "", opioid_by_type$Heroin))
-
-opioid_by_type$Natural.and.Semisynthetic.Opioids..e.g..oxycodone..hydrocodone.<-as.numeric(opioid_by_type$Natural.and.Semisynthetic.Opioids..e.g..oxycodone..hydrocodone.)
-opioid_by_type$Synthetic.Opioids..other.than.Methadone..e.g..fentanyl..tramadol.<-as.numeric(opioid_by_type$Synthetic.Opioids..other.than.Methadone..e.g..fentanyl..tramadol.)
-opioid_by_type$Methadone<-as.numeric(opioid_by_type$Methadone)
-opioid_by_type$Heroin<-as.numeric(opioid_by_type$Heroin)
-```
-
-```{r echo=FALSE, include=FALSE}
-colnames(opioid_by_sex)[1] <- 'State'
-colnames(opioid_by_sex)[4] <- 'Sex.Total'
-```
-
-```{r echo=FALSE, include=FALSE}
-colnames(opioid_by_race)[1] <- 'State'
-colnames(opioid_by_race)[6] <- 'Ethnicity.Total'
-opioid_by_race <- opioid_by_race %>%
-  mutate(Black..Non.Hispanic = fct_recode(Black..Non.Hispanic,
-                                          "0" = "N/A"),
-         Hispanic = fct_recode(Hispanic, "0" = "N/A"),
-         Other = fct_recode(Other, "0" = "N/A"))
-
-opioid_by_race$Black..Non.Hispanic<-as.numeric(opioid_by_race$Black..Non.Hispanic)
-opioid_by_race$White..Non.Hispanic<-as.numeric(opioid_by_race$White..Non.Hispanic)
-opioid_by_race$Hispanic<-as.numeric(opioid_by_race$Hispanic)
-opioid_by_race$Other<-as.numeric(opioid_by_race$Other)
-opioid_by_race$Ethnicity.Total<-as.numeric(opioid_by_race$Ethnicity.Total)
-```
-
-```{r}
-o1 <- dplyr::left_join(x = opioid_by_age, y = opioid_by_race, by = 'State')
-o2 <- dplyr::left_join(x = o1, y = opioid_by_sex, by = 'State')
-opioid <- dplyr::left_join(x = o2, y = opioid_by_type, by = 'State')
-```
-
-```{r}
-opioid <- opioid %>%
-  filter(!State %in% "United States")
-```
-
-```{r echo=FALSE}
-init_kmeans <- 
-  kmeans(dplyr::select(opioid, Natural.and.Semisynthetic.Opioids..e.g..oxycodone..hydrocodone., Synthetic.Opioids..other.than.Methadone..e.g..fentanyl..tramadol.),
-         algorithm = "Lloyd", centers = 3,
-         nstart = 1)
-
-opioid %>%
-  mutate(state_clusters = 
-           as.factor(init_kmeans$cluster)) %>%
-  ggplot(aes(x = Natural.and.Semisynthetic.Opioids..e.g..oxycodone..hydrocodone., y = Synthetic.Opioids..other.than.Methadone..e.g..fentanyl..tramadol.,
-             color = state_clusters)) +
-  labs(title = "Opioid OD by States") +
-  geom_point() + 
-  ggthemes::scale_color_colorblind() +
-  theme_bw() +
-  theme(legend.position = "bottom")
-```
-
-```{r}
-opioid <- opioid %>%
-  mutate(std_natural = as.numeric(scale(Natural.and.Semisynthetic.Opioids..e.g..oxycodone..hydrocodone., center = TRUE, scale = TRUE)),
-         std_synthetic = as.numeric(scale(Synthetic.Opioids..other.than.Methadone..e.g..fentanyl..tramadol., center = TRUE, scale = TRUE)))
-```
-
-```{r echo=FALSE}
-std_kmeans <- 
-  kmeans(dplyr::select(opioid, std_natural, std_synthetic),
-         algorithm = "Lloyd", centers = 3, nstart = 1)
-
-opioid %>%
-  mutate(state_clusters = 
-           as.factor(std_kmeans$cluster)) %>%
-  ggplot(aes(x = std_natural, y = std_synthetic,
-             color = state_clusters)) +
-  labs(x = "Natural Opioids", y = "Synthetic Opioids",
-       title = "Cluster of Natural and Synthethis Opioids") +
-  geom_point() + 
-  ggthemes::scale_color_colorblind() +
-  theme_bw() +
-  theme(legend.position = "bottom",
-        plot.title = element_text(hjust = 0.5)) +
-  coord_fixed()
-
-```
-
-```{r echo=FALSE, include=FALSE}
-n_s_clust <- Mclust(dplyr::select(opioid, Natural.and.Semisynthetic.Opioids..e.g..oxycodone..hydrocodone., Synthetic.Opioids..other.than.Methadone..e.g..fentanyl..tramadol.))
-```
-
-```{r echo=FALSE}
-plot(n_s_clust, what = 'classification')
-```
-
-
