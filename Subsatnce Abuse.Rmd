@@ -154,6 +154,8 @@ plot_usmap(data = combined, values = "OD_deaths", color = "red") +
 __Looking at the most used drug in California__
 
 ```{r echo=FALSE}
+library(ggrepel)
+library(wesanderson)
 d3 <- read.csv("~/SURE-2022/Drug-Alcohol Overdose Deaths.csv")
 d3$Data.Value <- as.integer(gsub(",", "", d3$Data.Value))
 d3[is.na(d3)] = 0
@@ -166,17 +168,28 @@ d3 <- d3 %>%
   select(State, Indicator, Data.Value) %>%
   group_by(State, Indicator) %>%
   summarise(Data.Value = sum(Data.Value)) %>%
-  arrange(desc(Data.Value)) %>%
-  ggplot(aes(x="", y=Data.Value, fill=Indicator)) +
-  geom_bar(stat="identity", width=1, color="white") +
-  coord_polar("y", start=0) +
-  theme_void() + 
-  theme(legend.position="none") +
-  
-  geom_text(aes(y = Data.Value, label = Indicator), color = "white", size=6) +
-  scale_fill_brewer(palette="Set1")
+  arrange(desc(Data.Value))
 
-d3
+df2 <- d3 %>% 
+  mutate(csum = rev(cumsum(rev(Data.Value))), 
+         pos = Data.Value/2 + lead(csum, 1),
+         pos = if_else(is.na(pos), Data.Value/2, pos))
+
+d3 %>%
+  ggplot(aes(x = "" , y = Data.Value, 
+             fill = fct_inorder(str_wrap(Indicator, 20)))) +
+  geom_col(width = 1, color = 1) +
+  coord_polar(theta = "y") +
+  scale_fill_brewer(palette = "Paired") +
+  geom_label_repel(data = df2,
+                   aes(y = pos, label = paste0(Data.Value)),
+                   size = 4.5, nudge_x = 1, show.legend = FALSE) +
+  guides(fill = guide_legend(title = "Indicator", ncol = 2, 
+                             title.position = "top",
+                             title.theme = element_text(size = 10),
+                             label.theme = element_text(size = 7))) +
+  theme_void() + 
+  theme(legend.position = "right")
 ```
 
 __Looking at the most used drug in Florida__
@@ -196,7 +209,26 @@ d3 <- d3 %>%
   summarise(Data.Value = sum(Data.Value)) %>%
   arrange(desc(Data.Value))
 
-knitr::kable(head(d3, 3), format = 'html')
+df2 <- d3 %>% 
+  mutate(csum = rev(cumsum(rev(Data.Value))), 
+         pos = Data.Value/2 + lead(csum, 1),
+         pos = if_else(is.na(pos), Data.Value/2, pos))
+
+d3 %>%
+  ggplot(aes(x = "" , y = Data.Value, 
+             fill = fct_inorder(str_wrap(Indicator, 20)))) +
+  geom_col(width = 1, color = 1) +
+  coord_polar(theta = "y") +
+  scale_fill_brewer(palette = "Paired") +
+  geom_label_repel(data = df2,
+                   aes(y = pos, label = paste0(Data.Value)),
+                   size = 4.5, nudge_x = 1, show.legend = FALSE) +
+  guides(fill = guide_legend(title = "Indicator", ncol = 2, 
+                             title.position = "top",
+                             title.theme = element_text(size = 10),
+                             label.theme = element_text(size = 7))) +
+  theme_void() + 
+  theme(legend.position = "right")
 ```
 
 __Looking at the most used drug in Texas__
@@ -216,7 +248,26 @@ d3 <- d3 %>%
   summarise(Data.Value = sum(Data.Value)) %>%
   arrange(desc(Data.Value))
 
-knitr::kable(head(d3, 3), format = 'html')
+df2 <- d3 %>% 
+  mutate(csum = rev(cumsum(rev(Data.Value))), 
+         pos = Data.Value/2 + lead(csum, 1),
+         pos = if_else(is.na(pos), Data.Value/2, pos))
+
+d3 %>%
+  ggplot(aes(x = "" , y = Data.Value, 
+             fill = fct_inorder(str_wrap(Indicator, 20)))) +
+  geom_col(width = 1, color = 1) +
+  coord_polar(theta = "y") +
+  scale_fill_brewer(palette = "Paired") +
+  geom_label_repel(data = df2,
+                   aes(y = pos, label = paste0(Data.Value)),
+                   size = 4.5, nudge_x = 1, show.legend = FALSE) +
+  guides(fill = guide_legend(title = "Indicator", ncol = 2, 
+                             title.position = "top",
+                             title.theme = element_text(size = 10),
+                             label.theme = element_text(size = 7))) +
+  theme_void() + 
+  theme(legend.position = "right")
 ```
 
 __Looking at the most used drug in Ohio__
@@ -235,8 +286,26 @@ d3 <- d3 %>%
   group_by(State, Indicator) %>%
   summarise(Data.Value = sum(Data.Value)) %>%
   arrange(desc(Data.Value))
+df2 <- d3 %>% 
+  mutate(csum = rev(cumsum(rev(Data.Value))), 
+         pos = Data.Value/2 + lead(csum, 1),
+         pos = if_else(is.na(pos), Data.Value/2, pos))
 
-knitr::kable(head(d3, 3), format = 'html')
+d3 %>%
+  ggplot(aes(x = "" , y = Data.Value, 
+             fill = fct_inorder(str_wrap(Indicator, 20)))) +
+  geom_col(width = 1, color = 1) +
+  coord_polar(theta = "y") +
+  scale_fill_brewer(palette = "Paired") +
+  geom_label_repel(data = df2,
+                   aes(y = pos, label = paste0(Data.Value)),
+                   size = 4.5, nudge_x = 1, show.legend = FALSE) +
+  guides(fill = guide_legend(title = "Indicator", ncol = 2, 
+                             title.position = "top",
+                             title.theme = element_text(size = 10),
+                             label.theme = element_text(size = 7))) +
+  theme_void() + 
+  theme(legend.position = "right")
 ```
 _Clustering of Total deaths by the socioeconomic factors__
 
