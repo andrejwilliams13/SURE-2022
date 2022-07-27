@@ -6,17 +6,15 @@ output:
   html_document: default
 ---
 
-# Where do most drug overdose deaths occur and what are some characteristics of those areas(income, education, unemployment)?
+# Predicators of Drug Overdose Deaths
 
+# Introduction
 
-__Datasets Used__
+Where do most drug overdose deaths occur and what are some characteristics of those areas? Some of the socio-economic factors that were looked into were the median household income, high school completion rate, some college experience rate, and unemployment rate per state. Also some information about the most used drug in a drug overdose death.
 
-County Health Rankings
+# Data
 
-12 Month-ending Provisional Number and Percent Change of Drug Overdose Deaths
-
-Median Household Income
-
+__County Health Rankings: State, High School Completion, Some College Experience, Unemployment__
 
 ```{r include=FALSE, echo=FALSE}
 library(tidyverse)
@@ -57,7 +55,7 @@ deaths <- d3 %>%
 colnames(deaths)[1] <- 'state'
 ```
 
-```{r include=FALSE, echo=FALSE}
+```{r echo=FALSE}
 county_rankings <- county_rankings %>%
   arrange(State.Abbreviation) %>%
   filter(County.FIPS.Code %in% 0,
@@ -126,13 +124,17 @@ income <- income %>%
                             "MS" = "Mississippi"))
 ```
 
+__Median Household Income: State, Household Income__
+
 ```{r echo=FALSE}
 library(usmap)
 library(ggplot2)
 
 plot_usmap(data = income, values = "HouseholdIncome", color = "red") + 
-  scale_fill_continuous(name = "Median Household Income", label = scales::comma) + 
-  theme(legend.position = "right")
+  scale_fill_continuous(name = "Income", label = scales::comma) +
+  labs(title = "Median Household Income by State") +
+  theme(legend.position = "right",
+        plot.title = element_text(hjust = 0.5))
 
 ```
 
@@ -144,16 +146,17 @@ second <- dplyr::left_join(x = first, y = county_rankings, by = 'state')
 combined <- dplyr::left_join(x = second, y = income, by = 'state')
 ```
 
-__Plotting the total drug overdose deaths per state in 2019__
+__12 Month-ending Provisional Number and Percent Change of Drug Overdose Deaths: State, Indicator, Data Value__
 
 ```{r echo=FALSE}
 plot_usmap(data = combined, values = "OD_deaths", color = "red") + 
-  scale_fill_continuous(low = "yellow", high = "darkred", name = "Total Drug OD Deaths", label = scales::comma) + 
-  theme(legend.position = "right")
+  scale_fill_continuous(low = "yellow", high = "darkred", name = "Total Drug OD Deaths", label = scales::comma) +
+  labs(title = "Total Drug Overdose Deaths per State") +
+  theme(legend.position = "right",
+        plot.title = element_text(hjust = 0.5))
 ```
-__Looking at the most used drug in California__
 
-```{r echo=FALSE}
+```{r echo=FALSE, warning = FALSE, message=FALSE}
 library(ggrepel)
 library(wesanderson)
 d3 <- read.csv("~/SURE-2022/Drug-Alcohol Overdose Deaths.csv")
@@ -178,13 +181,14 @@ df2 <- d3 %>%
 d3 %>%
   ggplot(aes(x = "" , y = Data.Value, 
              fill = fct_inorder(str_wrap(Indicator, 20)))) +
+  labs(title = "California's Leading Drug in Overdose Deaths") +
   geom_col(width = 1, color = 1) +
   coord_polar(theta = "y") +
   scale_fill_brewer(palette = "Paired") +
   geom_label_repel(data = df2,
                    aes(y = pos, label = paste0(Data.Value)),
                    size = 4.5, nudge_x = 1, show.legend = FALSE) +
-  guides(fill = guide_legend(title = "Indicator", ncol = 2, 
+  guides(fill = guide_legend(title = "Drug Type", ncol = 2, 
                              title.position = "top",
                              title.theme = element_text(size = 10),
                              label.theme = element_text(size = 7))) +
@@ -192,9 +196,7 @@ d3 %>%
   theme(legend.position = "right")
 ```
 
-__Looking at the most used drug in Florida__
-
-```{r echo=FALSE}
+```{r echo=FALSE, warning = FALSE, message=FALSE}
 d3 <- read.csv("~/SURE-2022/Drug-Alcohol Overdose Deaths.csv")
 d3$Data.Value <- as.integer(gsub(",", "", d3$Data.Value))
 d3[is.na(d3)] = 0
@@ -217,6 +219,7 @@ df2 <- d3 %>%
 d3 %>%
   ggplot(aes(x = "" , y = Data.Value, 
              fill = fct_inorder(str_wrap(Indicator, 20)))) +
+  labs(title = "Florida's Leading Drug in Overdose Deaths") +
   geom_col(width = 1, color = 1) +
   coord_polar(theta = "y") +
   scale_fill_brewer(palette = "Paired") +
@@ -231,9 +234,7 @@ d3 %>%
   theme(legend.position = "right")
 ```
 
-__Looking at the most used drug in Texas__
-
-```{r echo=FALSE}
+```{r echo=FALSE, warning = FALSE, message=FALSE}
 d3 <- read.csv("~/SURE-2022/Drug-Alcohol Overdose Deaths.csv")
 d3$Data.Value <- as.integer(gsub(",", "", d3$Data.Value))
 d3[is.na(d3)] = 0
@@ -256,6 +257,7 @@ df2 <- d3 %>%
 d3 %>%
   ggplot(aes(x = "" , y = Data.Value, 
              fill = fct_inorder(str_wrap(Indicator, 20)))) +
+  labs(title = "Texas' Leading Drug in Overdose Deaths") +
   geom_col(width = 1, color = 1) +
   coord_polar(theta = "y") +
   scale_fill_brewer(palette = "Paired") +
@@ -270,9 +272,7 @@ d3 %>%
   theme(legend.position = "right")
 ```
 
-__Looking at the most used drug in Ohio__
-
-```{r echo=FALSE}
+```{r echo=FALSE, warning = FALSE, message=FALSE}
 d3 <- read.csv("~/SURE-2022/Drug-Alcohol Overdose Deaths.csv")
 d3$Data.Value <- as.integer(gsub(",", "", d3$Data.Value))
 d3[is.na(d3)] = 0
@@ -294,6 +294,7 @@ df2 <- d3 %>%
 d3 %>%
   ggplot(aes(x = "" , y = Data.Value, 
              fill = fct_inorder(str_wrap(Indicator, 20)))) +
+  labs(title = "Ohio's Leading Drug in Overdose Deaths") +
   geom_col(width = 1, color = 1) +
   coord_polar(theta = "y") +
   scale_fill_brewer(palette = "Paired") +
@@ -307,9 +308,14 @@ d3 %>%
   theme_void() + 
   theme(legend.position = "right")
 ```
-_Clustering of Total deaths by the socioeconomic factors__
 
-```{r echo=FALSE, include=FALSE}
+# Methods
+
+__K-Means Clustering__
+
+I implemented K-means clustering to determine if there were any correlation between a drug overdose death and the socio-economic factors studied.
+
+```{r echo=FALSE, include=FALSE, warning=FALSE, message=FALSE}
 init_kmeans <- 
   kmeans(dplyr::select(combined,
                        OD_deaths, Unemployment.raw.value),
@@ -327,7 +333,7 @@ combined %>%
   theme(legend.position = "bottom")
 ```
 
-```{r echo=FALSE, include=FALSE}
+```{r echo=FALSE, include=FALSE,warning=FALSE, message=FALSE}
 init_kmeans <- 
   kmeans(dplyr::select(combined,
                        OD_deaths, Some.college.raw.value),
@@ -345,7 +351,7 @@ combined %>%
   theme(legend.position = "bottom")
 ```
 
-```{r echo=FALSE, include=FALSE}
+```{r echo=FALSE, include=FALSE,warning=FALSE, message=FALSE}
 init_kmeans <- 
   kmeans(dplyr::select(combined,
                        OD_deaths, High.school.completion.raw.value),
@@ -363,7 +369,7 @@ combined %>%
   theme(legend.position = "bottom")
 ```
 
-__Clustering with the standardized variables__
+# Results
 
 ```{r echo=FALSE}
 library(ggrepel)
@@ -374,7 +380,7 @@ combined <- combined %>%
          std_college = as.numeric(scale(Some.college.raw.value, center = TRUE, scale = TRUE)))
 ```
 
-```{r echo=FALSE}
+```{r echo=FALSE,warning=FALSE, message=FALSE}
 std_kmeans <- 
   kmeans(dplyr::select(combined, std_death, std_unemploy),
          algorithm = "Lloyd", centers = 4, nstart = 1)
@@ -396,10 +402,10 @@ combined %>%
 
 ```
 
-```{r echo=FALSE}
+```{r echo=FALSE,warning=FALSE, message=FALSE}
 std_kmeans <- 
   kmeans(dplyr::select(combined, std_death, std_hs),
-         algorithm = "Lloyd", centers = 3, nstart = 1)
+         algorithm = "Lloyd", centers = 4, nstart = 1)
 
 combined %>%
   mutate(state_clusters = 
@@ -418,7 +424,7 @@ combined %>%
 
 ```
 
-```{r echo=FALSE}
+```{r echo=FALSE,warning=FALSE, message=FALSE}
 std_kmeans <- 
   kmeans(dplyr::select(combined, std_death, std_college),
          algorithm = "Lloyd", centers = 4, nstart = 1)
@@ -430,35 +436,12 @@ combined %>%
              color = state_clusters, label = state)) +
   labs(x = "Total Deaths", y = "College Experience",
        title = "Cluster of Deaths and College Experience Rate by State") +
-  geom_point() +
+  geom_point() + 
   geom_text_repel(size = 2) +
   ggthemes::scale_color_colorblind() +
   theme_bw() +
-  theme(legend.position = "bottom") +
+  theme(legend.position = "bottom",
+        plot.title = element_text(hjust = 0.5)) +
   coord_fixed()
 
-```
-
-__Model Based Clustering__
-
-```{r echo=FALSE, include=FALSE}
-library(mclust)
-
-death_college_clust <- Mclust(dplyr::select(combined, OD_deaths, Unemployment.raw.value))
-
-death_unemploy_clust <- Mclust(dplyr::select(combined, OD_deaths, High.school.completion.raw.value))
-
-death_hs_clust <- Mclust(dplyr::select(combined, OD_deaths, Some.college.raw.value))
-```
-
-```{r echo=FALSE}
-plot(death_college_clust, what = 'classification')
-```
-
-```{r echo=FALSE}
-plot(death_hs_clust, what = 'classification')
-```
-
-```{r echo=FALSE}
-plot(death_unemploy_clust, what = 'classification')
 ```
