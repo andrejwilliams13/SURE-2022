@@ -1,7 +1,7 @@
 ---
 title: "Substance Abuse"
 author: "Andre Williams"
-date: '2022-07-20'
+date: '2022-07-29'
 output:
   html_document: default
 ---
@@ -18,7 +18,6 @@ __County Health Rankings: State, High School Completion, Some College Experience
 
 ```{r include=FALSE, echo=FALSE}
 library(tidyverse)
-
 d3 <- read.csv("~/SURE-2022/Drug-Alcohol Overdose Deaths.csv")
 county_rankings <- read.csv("~/SURE-2022/county_rankings.csv")
 income <- read.csv("~/SURE-2022/MedianHouseholdIncome.csv")
@@ -26,33 +25,16 @@ income <- read.csv("~/SURE-2022/MedianHouseholdIncome.csv")
 
 ```{r include=FALSE, echo=FALSE}
 d3$Data.Value <- as.integer(gsub(",", "", d3$Data.Value))
+colnames(d3)[1] <- 'state'
 
 OD <- d3 %>%
-  arrange(State) %>%
+  arrange(state) %>%
   filter(Year %in% "2019",
          Indicator %in% "Number of Drug Overdose Deaths",
-         !State %in% c("DC", "YC", "US")) %>%
-  select(State, Indicator, Data.Value) %>%
-  group_by(State) %>%
+         !state %in% c("DC", "YC", "US")) %>%
+  select(state, Indicator, Data.Value) %>%
+  group_by(state) %>%
   summarise(OD_deaths = sum(Data.Value))
-
-colnames(OD)[1] <- 'state'
-```
-
-```{r include=FALSE, echo=FALSE}
-d3 <- read.csv("~/SURE-2022/Drug-Alcohol Overdose Deaths.csv")
-d3$Data.Value <- as.integer(gsub(",", "", d3$Data.Value))
-
-deaths <- d3 %>%
-  arrange(State) %>%
-  filter(Year %in% "2019",
-         Indicator %in% "Number of Deaths",
-         !State %in% c("DC", "YC", "US")) %>%
-  select(State, Indicator, Data.Value) %>%
-  group_by(State) %>%
-  summarise(Total_deaths = sum(Data.Value))
-
-colnames(deaths)[1] <- 'state'
 ```
 
 ```{r echo=FALSE}
@@ -131,7 +113,7 @@ library(usmap)
 library(ggplot2)
 
 plot_usmap(data = income, values = "HouseholdIncome", color = "red") + 
-  scale_fill_continuous(name = "Income", label = scales::comma) +
+  scale_fill_continuous(low = "white", high = "red", name = "Income", label = scales::comma) +
   labs(title = "Median Household Income by State") +
   theme(legend.position = "right",
         plot.title = element_text(hjust = 0.5))
@@ -141,9 +123,8 @@ plot_usmap(data = income, values = "HouseholdIncome", color = "red") +
 ```{r echo=FALSE, include=FALSE}
 library(dplyr)
 
-first <- dplyr::left_join(x = OD, y = deaths, by = 'state')
-second <- dplyr::left_join(x = first, y = county_rankings, by = 'state')
-combined <- dplyr::left_join(x = second, y = income, by = 'state')
+first <- dplyr::left_join(x = OD, y = county_rankings, by = 'state')
+combined <- dplyr::left_join(x = first, y = income, by = 'state')
 ```
 
 __12 Month-ending Provisional Number and Percent Change of Drug Overdose Deaths: State, Indicator, Data Value__
@@ -158,7 +139,6 @@ plot_usmap(data = combined, values = "OD_deaths", color = "red") +
 
 ```{r echo=FALSE, warning = FALSE, message=FALSE}
 library(ggrepel)
-library(wesanderson)
 d3 <- read.csv("~/SURE-2022/Drug-Alcohol Overdose Deaths.csv")
 d3$Data.Value <- as.integer(gsub(",", "", d3$Data.Value))
 d3[is.na(d3)] = 0
@@ -272,104 +252,19 @@ d3 %>%
   theme(legend.position = "right")
 ```
 
-```{r echo=FALSE, warning = FALSE, message=FALSE}
-d3 <- read.csv("~/SURE-2022/Drug-Alcohol Overdose Deaths.csv")
-d3$Data.Value <- as.integer(gsub(",", "", d3$Data.Value))
-d3[is.na(d3)] = 0
-
-d3 <- d3 %>%
-  filter(Year %in% "2019",
-         !Indicator %in% c("Percent with drugs specified", "Number of Deaths",
-                        "Number of Drug Overdose Deaths"),
-         State %in% "OH") %>%
-  select(State, Indicator, Data.Value) %>%
-  group_by(State, Indicator) %>%
-  summarise(Data.Value = sum(Data.Value)) %>%
-  arrange(desc(Data.Value))
-df2 <- d3 %>% 
-  mutate(csum = rev(cumsum(rev(Data.Value))), 
-         pos = Data.Value/2 + lead(csum, 1),
-         pos = if_else(is.na(pos), Data.Value/2, pos))
-
-d3 %>%
-  ggplot(aes(x = "" , y = Data.Value, 
-             fill = fct_inorder(str_wrap(Indicator, 20)))) +
-  labs(title = "Ohio's Leading Drug in Overdose Deaths") +
-  geom_col(width = 1, color = 1) +
-  coord_polar(theta = "y") +
-  scale_fill_brewer(palette = "Paired") +
-  geom_label_repel(data = df2,
-                   aes(y = pos, label = paste0(Data.Value)),
-                   size = 4.5, nudge_x = 1, show.legend = FALSE) +
-  guides(fill = guide_legend(title = "Indicator", ncol = 2, 
-                             title.position = "top",
-                             title.theme = element_text(size = 10),
-                             label.theme = element_text(size = 7))) +
-  theme_void() + 
-  theme(legend.position = "right")
-```
-
 # Methods
 
 __K-Means Clustering__
 
-I implemented K-means clustering to determine if there were any correlation between a drug overdose death and the socio-economic factors studied.
-
-```{r echo=FALSE, include=FALSE, warning=FALSE, message=FALSE}
-init_kmeans <- 
-  kmeans(dplyr::select(combined,
-                       OD_deaths, Unemployment.raw.value),
-         algorithm = "Lloyd", centers = 3,
-         nstart = 1)
-
-combined %>%
-  mutate(state_clusters = 
-           as.factor(init_kmeans$cluster)) %>%
-  ggplot(aes(x = OD_deaths, y = Unemployment.raw.value,
-             color = state_clusters)) +
-  geom_point() + 
-  ggthemes::scale_color_colorblind() +
-  theme_bw() +
-  theme(legend.position = "bottom")
-```
-
-```{r echo=FALSE, include=FALSE,warning=FALSE, message=FALSE}
-init_kmeans <- 
-  kmeans(dplyr::select(combined,
-                       OD_deaths, Some.college.raw.value),
-         algorithm = "Lloyd", centers = 3,
-         nstart = 1)
-
-combined %>%
-  mutate(state_clusters = 
-           as.factor(init_kmeans$cluster)) %>%
-  ggplot(aes(x = OD_deaths, y = Some.college.raw.value,
-             color = state_clusters)) +
-  geom_point() + 
-  ggthemes::scale_color_colorblind() +
-  theme_bw() +
-  theme(legend.position = "bottom")
-```
-
-```{r echo=FALSE, include=FALSE,warning=FALSE, message=FALSE}
-init_kmeans <- 
-  kmeans(dplyr::select(combined,
-                       OD_deaths, High.school.completion.raw.value),
-         algorithm = "Lloyd", centers = 3,
-         nstart = 1)
-
-combined %>%
-  mutate(state_clusters = 
-           as.factor(init_kmeans$cluster)) %>%
-  ggplot(aes(x = OD_deaths, y = High.school.completion.raw.value,
-             color = state_clusters)) +
-  geom_point() + 
-  ggthemes::scale_color_colorblind() +
-  theme_bw() +
-  theme(legend.position = "bottom")
-```
+We implemented K-means clustering to determine if there were any correlation between a drug overdose death and the socio-economic factors listed. The reasons for using these four factors was because of their pre-existing relations to someone who uses drugs.
+People who are unemployed aren't necessarily not working because they don't want. It can be very stressful looking for a job, and when people are stressed, they look for ways to relieve it and drugs is a common solution.
+In most communities, people who did not finish high school tend go down the route of drugs and potentially become an addict.
+Drugs of all kinds are present on college campuses and dents tend to indulge in taking drugs because there is immense peer pressure and no supervision.
+Household incomes and it's relationship towards drug abuse can vary, especially based on the area.
 
 # Results
+
+Since we grouped our data by states, we will look at which states share similarities and which of the factors do these states fall under.
 
 ```{r echo=FALSE}
 library(ggrepel)
@@ -377,7 +272,8 @@ combined <- combined %>%
   mutate(std_death = as.numeric(scale(OD_deaths, center = TRUE, scale = TRUE)),
          std_unemploy = as.numeric(scale(Unemployment.raw.value, center = TRUE, scale = TRUE)),
          std_hs = as.numeric(scale(High.school.completion.raw.value, center = TRUE, scale = TRUE)),
-         std_college = as.numeric(scale(Some.college.raw.value, center = TRUE, scale = TRUE)))
+         std_college = as.numeric(scale(Some.college.raw.value, center = TRUE, scale = TRUE)),
+         std_income = as.numeric(scale(HouseholdIncome, center = TRUE, scale = TRUE)))
 ```
 
 ```{r echo=FALSE,warning=FALSE, message=FALSE}
@@ -402,6 +298,8 @@ combined %>%
 
 ```
 
+There is wide spectrum of states that fall within the unemployment rate range. However, there is some correlation between unemployment rates and states with a lower drug overdose death. But the range is still too large for a concrete relationship.
+
 ```{r echo=FALSE,warning=FALSE, message=FALSE}
 std_kmeans <- 
   kmeans(dplyr::select(combined, std_death, std_hs),
@@ -424,6 +322,8 @@ combined %>%
 
 ```
 
+Here we can see a common factor in where states share similarities among high school completion rate. States with a higher high school completion rate tend to have a lower number of drug overdose deaths. And most states with a high number of deaths lean towards the median of the HS completion rate.
+
 ```{r echo=FALSE,warning=FALSE, message=FALSE}
 std_kmeans <- 
   kmeans(dplyr::select(combined, std_death, std_college),
@@ -445,3 +345,65 @@ combined %>%
   coord_fixed()
 
 ```
+
+Unlike the other two clusters, having some college experience seems to not have a clear or slightly visible effect on a drug overdose death.
+
+```{r echo=FALSE,warning=FALSE, message=FALSE}
+std_kmeans <- 
+  kmeans(dplyr::select(combined, std_death, std_income),
+         algorithm = "Lloyd", centers = 4, nstart = 1)
+
+combined %>%
+  mutate(state_clusters = 
+           as.factor(std_kmeans$cluster)) %>%
+  ggplot(aes(x = std_death, y = std_income,
+             color = state_clusters, label = state)) +
+  labs(x = "Total Deaths", y = "Household Income",
+       title = "Cluster of Deaths and Median Household Income by State") +
+  geom_point() + 
+  geom_text_repel(size = 2) +
+  ggthemes::scale_color_colorblind() +
+  theme_bw() +
+  theme(legend.position = "bottom",
+        plot.title = element_text(hjust = 0.5)) +
+  coord_fixed()
+
+```
+
+Household income plays a little bit of a factor here as states with lower median household income tend to have a lower number of drug overdose deaths.
+
+# Discussion
+
+__Conclusions__
+
+Based on the results, we were able to conclude that some key factors that lead to most drug overdose deaths are:
+
+High unemployment rate
+Low High school completion rate
+Low median household income
+
+The only factor that did not have a clear effect was some college experience.
+
+__Limitations__
+
+Although given the county rankings data set that was very extensive, there was no variables involving drugs or drug overdose deaths. This lead to searching for external data, which no of had county level data. This is why the data was grouped by states instead of county.
+
+__Future Works__
+
+Some further research that can be done is obtaining data on a county level to broaden our EDA and clusters.
+Another topic that can be branched from this research is looking directly into the top five states and why they have such high drug overdose deaths. We discovered that opioids are the most used drug these cases. Looking more into what the opioid crisis looks like in each state can be an interesting project.
+
+# Acknowledgments
+
+Program Advisors
+TA's
+Optum
+CMU Stats Dept.
+
+# References
+
+__Median Household Income:  https://worldpopulationreview.com/state-rankings/median-household-income-by-state __
+
+__12 Month-ending Provisional Number and Percent Change of Drug Overdose Deaths: https://www.cdc.gov/nchs/nvss/vsrr/drug-overdose-data.htm __
+
+__County Rankings: https://www.countyhealthrankings.org/explore-health-rankings/measures-data-sources/county-health-rankings-model __
