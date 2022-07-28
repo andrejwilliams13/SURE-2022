@@ -298,7 +298,7 @@ combined %>%
 
 ```
 
-There is wide spectrum of states that fall within the unemployment rate range. However, there is some correlation between unemployment rates and states with a lower drug overdose death. But the range is still too large for a concrete relationship.
+Here we can see a common factor in where states share similarities among unemployment rate. However, there is some correlation between unemployment rates and states with a lower drug overdose death. States with a lower unemployment rate tend to have a lower number of total deaths as seen as in the green and black clusters.
 
 ```{r echo=FALSE,warning=FALSE, message=FALSE}
 std_kmeans <- 
@@ -322,7 +322,7 @@ combined %>%
 
 ```
 
-Here we can see a common factor in where states share similarities among high school completion rate. States with a higher high school completion rate tend to have a lower number of drug overdose deaths. And most states with a high number of deaths lean towards the median of the HS completion rate.
+There is wide spectrum of states that fall within the high school completion rate range. States with a higher high school completion rate tend to have a lower number of drug overdose deaths. But the data becomes tricky when examining the green and yellow cluster of states because they have a more common amount of total deaths, yet has a large range of high school completion rate. And most states with a high number of deaths lean towards the median of the HS completion rate.
 
 ```{r echo=FALSE,warning=FALSE, message=FALSE}
 std_kmeans <- 
@@ -376,10 +376,10 @@ Household income plays a little bit of a factor here as states with lower median
 
 __Conclusions__
 
-Based on the results, we were able to conclude that some key factors that lead to most drug overdose deaths are:
+Based on the results, we were able to conclude that some key factors that can prevent most drug overdose deaths are:
 
-High unemployment rate
-Low High school completion rate
+Lower unemployment rate
+High high school completion rate
 Low median household income
 
 The only factor that did not have a clear effect was some college experience.
@@ -395,10 +395,7 @@ Another topic that can be branched from this research is looking directly into t
 
 # Acknowledgments
 
-Program Advisors
-TA's
-Optum
-CMU Stats Dept.
+Program Advisors, TA's, Optum, CMU Stats Dept.
 
 # References
 
