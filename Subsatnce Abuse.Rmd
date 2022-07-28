@@ -131,7 +131,7 @@ __12 Month-ending Provisional Number and Percent Change of Drug Overdose Deaths:
 
 ```{r echo=FALSE}
 plot_usmap(data = combined, values = "OD_deaths", color = "red") + 
-  scale_fill_continuous(low = "yellow", high = "darkred", name = "Total Drug OD Deaths", label = scales::comma) +
+  scale_fill_continuous(low = "yellow", high = "darkred", name = "Drug OD Deaths", label = scales::comma) +
   labs(title = "Total Drug Overdose Deaths per State") +
   theme(legend.position = "right",
         plot.title = element_text(hjust = 0.5))
@@ -223,7 +223,7 @@ d3 <- d3 %>%
   filter(Year %in% "2019",
          !Indicator %in% c("Percent with drugs specified", "Number of Deaths",
                         "Number of Drug Overdose Deaths"),
-         State %in% "TX") %>%
+         State %in% "OH") %>%
   select(State, Indicator, Data.Value) %>%
   group_by(State, Indicator) %>%
   summarise(Data.Value = sum(Data.Value)) %>%
@@ -237,7 +237,7 @@ df2 <- d3 %>%
 d3 %>%
   ggplot(aes(x = "" , y = Data.Value, 
              fill = fct_inorder(str_wrap(Indicator, 20)))) +
-  labs(title = "Texas' Leading Drug in Overdose Deaths") +
+  labs(title = "Ohio's Leading Drug in Overdose Deaths") +
   geom_col(width = 1, color = 1) +
   coord_polar(theta = "y") +
   scale_fill_brewer(palette = "Paired") +
